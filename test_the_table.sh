@@ -45,8 +45,8 @@ echo "***********************************"
 # Collect counts
 namespace_count=$(get_count ns)
 node_count=$(get_count nodes)
-kube_system_pod_count=$(kubectl get pods -A | grep -F 'kube-system' | wc -w)
-pod_count=$(get_count po)
+kube_system_pod_count=$(kubectl get pods -n kube-system | wc -l)
+pod_count=$(get_count po)    
 app_deployment_count=$(kubectl get deploy -A | grep -Ff <(printf "%s\n" '22e933a8-3406-4e81-9382-c5d384ca510d' '31674166-4673-4755-999e-e5bd9a9df150' '4d1953c8-cdd1-40c5-be37-d9d6ce6df0b9' '5a0aca15-8b6c-487b-9a9d-9e92102165a1' '5a0aca15-8b6c-487b-9a9d-9e92102165a' '6bb35783-b673-4bc2-adfa-ed083265537b' 'b2f05235-ba6b-47a5-9252-3a73f6ee83a5') | wc -w)
 app_pod_count=$(kubectl get pods -A | grep -Ff <(printf "%s\n" '22e933a8-3406-4e81-9382-c5d384ca510d' '31674166-4673-4755-999e-e5bd9a9df150' '4d1953c8-cdd1-40c5-be37-d9d6ce6df0b9' '5a0aca15-8b6c-487b-9a9d-9e92102165a1' '5a0aca15-8b6c-487b-9a9d-9e92102165a' '6bb35783-b673-4bc2-adfa-ed083265537b' 'b2f05235-ba6b-47a5-9252-3a73f6ee83a5') | wc -w)
 ingress_count=$(kubectl get ing -A | grep nginx | wc -w)
