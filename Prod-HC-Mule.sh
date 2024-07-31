@@ -35,7 +35,7 @@ get_count() {
 
 # Print header
 echo -e "\n***********************************"
-echo "========== MULESOFT PREPROD =========="
+echo "========== MULESOFT PROD =========="
 echo "***********************************"
 # Collect counts
 namespace_count=$(get_count ns)
