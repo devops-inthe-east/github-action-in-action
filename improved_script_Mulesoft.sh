@@ -130,5 +130,5 @@ kubectl get deploy -A | column -t
 check_status "kubectl get deploy -A"
 
 echo -e "\n===== Deamonset Status ====="
-kubectl get deploy -A | column -t
+kubectl get ds -A | column -t
 check_status "kubectl get ds -A"
