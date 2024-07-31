@@ -1,129 +1,103 @@
 #!/bin/bash
 
-# Function to print text in a specific color
-print_color() {
-    local color=$1
-    local text=$2
-    echo -e "${color}${text}${NC}"
+# Function to print header
+print_header() {
+    BLUE='\033[0;34m'
+    NC='\033[0m' # No Color
+    echo -e "${BLUE}***********************************"
+    echo -e "========== MULESOFT PREPROD ==========="
+    echo -e "***********************************${NC}"
 }
 
-# Colors
-NC='\033[0m' # No Color
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
+# Function to print counts table
+print_counts_table() {
+    BLUE='\033[0;34m'
+    echo -e "${BLUE}\n===== Summary =====\n"
+    echo -e "Components\tCount"
+    echo -e "----------\t-----"
+    echo -e "Namespaces\t$(kubectl get ns --no-headers | wc -l)"
+    echo -e "Nodes\t\t$(kubectl get node --no-headers | wc -l)"
+    echo -e "Pods\t\t$(kubectl get po -A --no-headers | wc -l)"
+    echo -e "Deployments\t$(kubectl get deploy -A --no-headers | wc -l)"
+    echo -e "Ingress\t\t$(kubectl get ing -A | grep nginx --no-headers | wc -l)"
+    echo -e "Jobs\t\t$(kubectl get job -A --no-headers | wc -l)"
+    echo -e "CronJobs\t$(kubectl get cj -A --no-headers | wc -l)"
+    echo -e "${NC}"
+}
 
-# Check if kubectl is installed
-if ! command -v kubectl &> /dev/null; then
-    echo "kubectl not found. Please install kubectl and try again."
-    exit 1
-fi
-
-# Function to check the status of the last command
+# Function to check the status and print in table format
 check_status() {
-    if [ $? -ne 0 ]; then
-        print_color "$RED" "Error: Failed to execute $1"
-        exit 1
-    fi
+    CMD=$1
+    echo -e "\n$($CMD | column -t)"
 }
 
-# Function to get the count of a kubectl resource
-get_count() {
-    kubectl get "$1" -A | wc -l
+# Function to print problematic pods
+print_problematic_pods() {
+    STATUSES=("0/1" "1/2" "0/2" "2/3" "1/3" "0/3")
+    for STATUS in "${STATUSES[@]}"; do
+        echo -e "\n===== Problematic Pods ($STATUS) ====="
+        kubectl get po -A | grep -i "$STATUS" | column -t
+    done
 }
 
 # Print header
-echo -e "\n***********************************"
-echo "========== MULESOFT PREPROD =========="
-echo "***********************************"
+print_header
 
-# Collect counts
-namespace_count=$(get_count ns)
-node_count=$(get_count nodes)
-pod_count=$(get_count po)
-deployment_count=$(kubectl get deploy -A | grep -E '22e933a8-3406-4e81-9382-c5d384ca510d|31674166-4673-4755-999e-e5bd9a9df150|4d1953c8-cdd1-40c5-be37-d9d6ce6df0b9|5a0aca15-8b6c-487b-9a9d-9e92102165a1|6bb35783-b673-4bc2-adfa-ed083265537b|b2f05235-ba6b-47a5-9252-3a73f6ee83a5' | wc -l)
-app_pod_count=$(kubectl get pods -A | grep -E '22e933a8-3406-4e81-9382-c5d384ca510d|31674166-4673-4755-999e-e5bd9a9df150|4d1953c8-cdd1-40c5-be37-d9d6ce6df0b9|5a0aca15-8b6c-487b-9a9d-9e92102165a1|6bb35783-b673-4bc2-adfa-ed083265537b|b2f05235-ba6b-47a5-9252-3a73f6ee83a5' | wc -l)
-ingress_count=$(kubectl get ing -A | grep nginx | wc -l)
+# Print counts table
+print_counts_table
 
-# Print counts in a table with colors
-echo -e "\n===== Summary ====="
-print_color "$CYAN" "Component\tCount"
-print_color "$CYAN" "---------\t-----"
-print_color "$GREEN" "Namespaces\t$namespace_count"
-print_color "$YELLOW" "Nodes\t\t$node_count"
-print_color "$BLUE" "Pods\t\t$pod_count"
-print_color "$MAGENTA" "Deployments\t$deployment_count"
-print_color "$RED" "App Pods\t$app_pod_count"
-print_color "$CYAN" "Ingress\t\t$ingress_count"
-echo ""
-
-# Print all namespaces
-echo "===== All Namespace ====="
-kubectl get ns | column -t
+# Detailed information
+echo -e "\n===== All Namespace ====="
 check_status "kubectl get ns"
 
-# Print node status
 echo -e "\n===== Node Status ====="
-kubectl get nodes | column -t
-check_status "kubectl get nodes"
+check_status "kubectl get node"
 
-# Print top node resource usage
 echo -e "\n===== Top Node ====="
-kubectl top node | column -t
 check_status "kubectl top node"
 
-# Print all pods in all namespaces
 echo -e "\n===== Pod All-Namespace ====="
-kubectl get po -A | column -t
 check_status "kubectl get po -A"
 
-# Print deployment count for specific namespaces
-echo -e "\n===== Deployment Details ====="
-kubectl get deploy -A | grep -E '22e933a8-3406-4e81-9382-c5d384ca510d|31674166-4673-4755-999e-e5bd9a9df150|4d1953c8-cdd1-40c5-be37-d9d6ce6df0b9|5a0aca15-8b6c-487b-9a9d-9e92102165a1|6bb35783-b673-4bc2-adfa-ed083265537b|b2f05235-ba6b-47a5-9252-3a73f6ee83a5' | column -t
-check_status "kubectl get deploy -A | grep -E ..."
+echo -e "\n===== Problematic Pods ====="
+print_problematic_pods
 
-# Print application pods count for specific namespaces
-echo -e "\n===== Application Pods Details ====="
-kubectl get pods -A | grep -E '22e933a8-3406-4e81-9382-c5d384ca510d|31674166-4673-4755-999e-e5bd9a9df150|4d1953c8-cdd1-40c5-be37-d9d6ce6df0b9|5a0aca15-8b6c-487b-9a9d-9e92102165a1|6bb35783-b673-4bc2-adfa-ed083265537b|b2f05235-ba6b-47a5-9252-3a73f6ee83a5' | column -t
-check_status "kubectl get pods -A | grep -E ..."
+echo -e "\n===== pprod Pods ====="
+NS="b2f05235-ba6b-47a5-9252-3a73f6ee83a5"
+echo -e "\nTotal Pods in namespace ${NS}: $(kubectl get po -n ${NS} --no-headers | wc -l)"
+check_status "kubectl get po -n ${NS}"
 
-# Print problematic pods with specific statuses
-STATUSES=("0/1" "1/2" "0/2" "2/3" "1/3" "0/3")
-for STATUS in "${STATUSES[@]}"; do
-    echo -e "\n===== Problematic Pods (${STATUS}) ====="
-    kubectl get po -A | grep -i "${STATUS}" | column -t
-done
+echo -e "\n===== sit1 Pods ====="
+NS="22e933a8-3406-4e81-9382-c5d384ca510d"
+echo -e "\nTotal Pods in namespace ${NS}: $(kubectl get po -n ${NS} --no-headers | wc -l)"
+check_status "kubectl get po -n ${NS}"
 
-# Print pods in specific namespaces
-NAMESPACES=("b2f05235-ba6b-47a5-9252-3a73f6ee83a5" "22e933a8-3406-4e81-9382-c5d384ca510d" "6bb35783-b673-4bc2-adfa-ed083265537b" "5a0aca15-8b6c-487b-9a9d-9e92102165a1" "31674166-4673-4755-999e-e5bd9a9df150")
-for NS in "${NAMESPACES[@]}"; do
-    echo -e "\n===== Pods in namespace ${NS} ====="
-    kubectl get po -n "${NS}" | column -t
-    check_status "kubectl get po -n ${NS}"
-    echo -e "\nTotal Pods in namespace ${NS}: "
-    kubectl get po -n "${NS}" | wc -l | column -t
-    check_status "kubectl get po -n ${NS} | wc -l"
-done
+echo -e "\n===== sit2 Pods ====="
+NS="6bb35783-b673-4bc2-adfa-ed083265537b"
+echo -e "\nTotal Pods in namespace ${NS}: $(kubectl get po -n ${NS} --no-headers | wc -l)"
+check_status "kubectl get po -n ${NS}"
 
-# Print non-running pods
-echo -e "\n===== Problematic Pods Except Running ====="
-kubectl get po -A | grep -v Running | column -t
+echo -e "\n===== sit3 Pods ====="
+NS="5a0aca15-8b6c-487b-9a9d-9e92102165a1"
+echo -e "\nTotal Pods in namespace ${NS}: $(kubectl get po -n ${NS} --no-headers | wc -l)"
+check_status "kubectl get po -n ${NS}"
+
+echo -e "\n===== dev Pods ====="
+NS="31674166-4673-4755-999e-e5bd9a9df150"
+echo -e "\nTotal Pods in namespace ${NS}: $(kubectl get po -n ${NS} --no-headers | wc -l)"
+check_status "kubectl get po -n ${NS}"
+
+echo -e "\n==== Ingress Status ===="
+check_status "kubectl get ing -A | grep nginx"
+
+echo -e "\n==== Problematic Pods Except Running ===="
 check_status "kubectl get po -A | grep -v Running"
 
-# Print cron jobs
-echo -e "\n===== CronJobs ====="
-kubectl get cj -A | column -t
+echo -e "\n====== CronJob ======"
 check_status "kubectl get cj -A"
 
-# Print jobs
-echo -e "\n===== Jobs ====="
-kubectl get job -A | column -t
+echo -e "\n===== Job ====="
 check_status "kubectl get job -A"
 
-# Print deployment status
 echo -e "\n===== Deployment Status ====="
-kubectl get deploy -A | column -t
 check_status "kubectl get deploy -A"
