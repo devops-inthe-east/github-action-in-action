@@ -1,20 +1,34 @@
-extraObjects:
+universal-crossplane:
+  externalSecretStoresEnabled: false
+  image:
+    repository: ***.dkr.ecr.eu-central-1.amazonaws.com/***/upbound/crossplane
+    tag: v1.17.1-up.1
+    pullPolicy: IfNotPresent
+  bootstrapper:
+    image:
+      repository: ***.dkr.ecr.eu-central-1.amazonaws.com/***/upbound/uxp-bootstrapper
+      tag: v1.17.1-up.1
+      pullPolicy: IfNotPresent
+    config:
+    # -- Enable debug mode for bootstrapper.
+    debugMode: true
+  extraObjects:
   # AWS Provider Family
   - apiVersion: pkg.crossplane.io/v1
     kind: Provider
     metadata:
-      name: provider-aws
+      name: provider-family-aws
     spec:
-      package: xpkg.upbound.io/crossplane-contrib/provider-aws:v0.44.0
+      package: ***.dkr.ecr.eu-central-1.amazonaws.com/***/upbound/provider-family-aws:v1.23
       skipDependencyResolution: true
-      
-  # IAM Provider
+
+   # IAM Provider
   - apiVersion: pkg.crossplane.io/v1
     kind: Provider
     metadata:
       name: provider-aws-iam
     spec:
-      package: xpkg.upbound.io/upbound/provider-aws-iam:v0.44.0
+      package: ***.dkr.ecr.eu-central-1.amazonaws.com/***/upbound/provider-aws-iam:v1
       skipDependencyResolution: true
       
   # CloudWatch Provider
@@ -23,7 +37,7 @@ extraObjects:
     metadata:
       name: provider-aws-cloudwatch
     spec:
-      package: xpkg.upbound.io/upbound/provider-aws-cloudwatch:v0.44.0
+      package: ***.dkr.ecr.eu-central-1.amazonaws.com/***/upbound/provider-aws-cloudwatchevents:v1
       skipDependencyResolution: true
       
   # SNS Provider
@@ -32,7 +46,7 @@ extraObjects:
     metadata:
       name: provider-aws-sns
     spec:
-      package: xpkg.upbound.io/upbound/provider-aws-sns:v0.44.0
+      package: ***.dkr.ecr.eu-central-1.amazonaws.com/***/upbound/provider-aws-sns:v1
       skipDependencyResolution: true
       
   # SQS Provider
@@ -41,60 +55,14 @@ extraObjects:
     metadata:
       name: provider-aws-sqs
     spec:
-      package: xpkg.upbound.io/upbound/provider-aws-sqs:v0.44.0
-      skipDependencyResolution: true
-
-  # DeploymentRuntimeConfig for AWS providers (optional but recommended)
-  - apiVersion: pkg.crossplane.io/v1beta1
-    kind: DeploymentRuntimeConfig
-    metadata:
-      name: aws-provider-config
-    spec:
-      deploymentTemplate:
-        spec:
-          selector: {}
-          template:
-            spec:
-              containers:
-              - name: package-runtime
-                resources:
-                  limits:
-                    memory: 512Mi
-                  requests:
-                    memory: 256Mi
-                env:
-                - name: AWS_CONFIG_FILE
-                  value: /aws-config/config
-                - name: AWS_SHARED_CREDENTIALS_FILE
-                  value: /aws-config/credentials
-                volumeMounts:
-                - name: aws-config
-                  mountPath: /aws-config
-                  readOnly: true
-              volumes:
-              - name: aws-config
-                secret:
-                  secretName: aws-credentials
-                  optional: true
-
-  # ProviderConfig for AWS authentication (you'll need to create the secret separately)
-  - apiVersion: aws.crossplane.io/v1beta1
+      package: ***.dkr.ecr.eu-central-1.amazonaws.com/***/upbound/provider-aws-sqs:v1
+      skipDependencyResolution: true  
+  
+  # ProviderConfig for AWS AuthN
+  - apiVersion: aws.upbound.io/v1beta1
     kind: ProviderConfig
     metadata:
       name: default
     spec:
       credentials:
-        source: Secret
-        secretRef:
-          namespace: crossplane-system
-          name: aws-credentials
-          key: creds
-      region: us-east-1
-
-# Optional: Configure RBAC
-serviceAccount:
-  create: true
-  name: crossplane
-
-rbac:
-  create: true
+        source: IRSA
